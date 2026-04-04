@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Lawn Pal",
+    "slug": "lawn-pal",
+    "scheme": "lawnpal",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": ["**/*"],
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Lawn Pal uses your location to tailor weather-aware lawn guidance."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#2F6B45"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Lawn Pal uses your photos to attach a lawn image to a note or AI question.",
+          "cameraPermission": "Lawn Pal uses your camera to capture a lawn photo for notes or AI guidance."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F0E1"
+      }
+    }
+  }
+}
