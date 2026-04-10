@@ -6,29 +6,23 @@ import {
 import * as Linking from "expo-linking";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { StyleSheet, Text } from "react-native";
-import { Body, Button, Card, Heading, Screen, Subheading } from "@/components/ui";
+import { StyleSheet, Text, View } from "react-native";
+import { AppScreen } from "@/components/appChrome";
+import { SectionEyebrow, SurfaceBlock } from "@/components/stitch";
+import { Button } from "@/components/ui";
 import { localRepository } from "@/data/localRepository";
-import { palette } from "@/theme";
+import { fonts, palette, spacing } from "@/theme";
 
 export default function ProductsScreen() {
   const params = useLocalSearchParams<{ caseId?: string }>();
+  const hasCaseContext = typeof params.caseId === "string" && params.caseId.length > 0;
   const [items, setItems] = useState<
-    {
-      productId: string;
-      title: string;
-      why: string;
-      affiliateUrl: string;
-      ctaLabel: string;
-    }[]
+    { productId: string; title: string; why: string; affiliateUrl: string; ctaLabel: string }[]
   >([]);
-  const [title, setTitle] = useState("No product suggestions yet");
-  const [descriptions, setDescriptions] = useState<Record<string, string>>({});
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
-
       const load = async () => {
         const [lawn, summary] = await Promise.all([
           localRepository.getPrimaryLawn(),
@@ -46,51 +40,37 @@ export default function ProductsScreen() {
 
         if (!active || !lawn) {
           setItems([]);
-          setTitle("No product suggestions yet");
           return;
         }
 
-        let nextItems =
-          caseState && caseState.productSuggestionCategories.length
-            ? generateProductRecommendationsForCase({
-                caseState,
-                profile: lawn.profile
-              })
-            : [];
+        const caseSupportsProducts =
+          Boolean(caseState) &&
+          caseState!.confidence.resolved &&
+          caseState!.confidence.label === "high" &&
+          caseState!.productSuggestionCategories.length > 0;
 
-        if (!nextItems.length && summary) {
-          nextItems = generateProductRecommendations({
-            recommendationSet: summary,
-            profile: lawn.profile
-          });
-        }
+        const nextItems =
+          caseSupportsProducts && caseState
+            ? generateProductRecommendationsForCase({ caseState, profile: lawn.profile })
+            : hasCaseContext
+              ? []
+              : summary
+                ? generateProductRecommendations({ recommendationSet: summary, profile: lawn.profile })
+                : [];
 
         setItems(nextItems);
-        setTitle(
-          caseState?.productSuggestionCategories.length
-            ? "Suggestions based on the active diagnosis case"
-            : nextItems.length
-              ? "Suggestions based on your latest scan"
-              : "No product suggestions yet"
-        );
-        setDescriptions(
-          Object.fromEntries(productCatalog.map((product) => [product.id, product.description] as const))
-        );
       };
 
       void load();
       return () => {
         active = false;
       };
-    }, [params.caseId])
+    }, [hasCaseContext, params.caseId])
   );
 
-  const subtitle = useMemo(
-    () =>
-      items.length
-        ? "Categories are only surfaced once Lawn Pal has enough confidence in the diagnosis."
-        : "Run a scan or build confidence in a diagnosis case before Lawn Pal suggests products.",
-    [items.length]
+  const descriptions = useMemo(
+    () => Object.fromEntries(productCatalog.map((product) => [product.id, product.description] as const)),
+    []
   );
 
   const openProduct = async (productId: string, url: string) => {
@@ -99,39 +79,60 @@ export default function ProductsScreen() {
   };
 
   return (
-    <Screen>
-      <Card>
-        <Heading>Product recommendations</Heading>
-        <Body muted>{subtitle}</Body>
-      </Card>
+    <AppScreen navKey={hasCaseContext ? "ask" : "lawn"}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Products</Text>
+        <Text style={styles.subtitle}>Recommendations only surface once LawnPal has enough confidence in the case.</Text>
+      </View>
 
-      <Card>
-        <Subheading>{title}</Subheading>
-        {items.length ? (
-          items.map((item) => (
-            <Card key={item.productId}>
-              <Subheading>{item.title}</Subheading>
-              <Text style={styles.description}>{descriptions[item.productId]}</Text>
-              <Body>{item.why}</Body>
-              <Button
-                label={item.ctaLabel}
-                tone="secondary"
-                onPress={() => void openProduct(item.productId, item.affiliateUrl)}
-              />
-            </Card>
-          ))
-        ) : (
-          <Body muted>
-            Lawn Pal is holding product suggestions until the current diagnosis is more settled.
-          </Body>
-        )}
-      </Card>
-    </Screen>
+      {items.length ? (
+        items.map((item) => (
+          <SurfaceBlock key={item.productId} tone="raised">
+            <SectionEyebrow>Category Fit</SectionEyebrow>
+            <Text style={styles.cardTitle}>{item.title}</Text>
+            <Text style={styles.description}>{descriptions[item.productId]}</Text>
+            <Text style={styles.subtitle}>{item.why}</Text>
+            <Button label={item.ctaLabel} onPress={() => void openProduct(item.productId, item.affiliateUrl)} />
+          </SurfaceBlock>
+        ))
+      ) : (
+        <SurfaceBlock tone="raised">
+          <Text style={styles.cardTitle}>No product suggestions yet</Text>
+          <Text style={styles.subtitle}>
+            {hasCaseContext
+              ? "This case is still being narrowed down, so LawnPal is holding product suggestions until the diagnosis is settled."
+              : "LawnPal is holding product recommendations until the diagnosis or scan is more settled."}
+          </Text>
+        </SurfaceBlock>
+      )}
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
+  header: {
+    gap: spacing.xs
+  },
+  title: {
+    color: palette.primary,
+    fontFamily: fonts.headlineHeavy,
+    fontSize: 38,
+    letterSpacing: -1
+  },
+  subtitle: {
+    color: palette.inkSoft,
+    fontFamily: fonts.body,
+    fontSize: 15,
+    lineHeight: 22
+  },
+  cardTitle: {
+    color: palette.primary,
+    fontFamily: fonts.headlineBold,
+    fontSize: 24
+  },
   description: {
-    color: palette.inkSoft
+    color: palette.inkSoft,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14
   }
 });

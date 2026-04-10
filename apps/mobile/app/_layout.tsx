@@ -1,11 +1,19 @@
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold
+} from "@expo-google-fonts/inter";
+import { Manrope_700Bold, Manrope_800ExtraBold } from "@expo-google-fonts/manrope";
+import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
 import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import { AppProviders } from "@/providers/AppProviders";
 import { localRepository } from "@/data/localRepository";
+import { AppProviders } from "@/providers/AppProviders";
 import { useAppStore } from "@/store/appStore";
-import { palette } from "@/theme";
+import { fonts, palette } from "@/theme";
 
 function BootstrappedLayout() {
   const bootstrap = useAppStore((state) => state.bootstrap);
@@ -78,7 +86,7 @@ function BootstrappedLayout() {
     return (
       <View style={styles.loading}>
         <ActivityIndicator color={palette.primary} size="large" />
-        <Text style={styles.loadingText}>Preparing your lawn plan…</Text>
+        <Text style={styles.loadingText}>Preparing your lawn plan...</Text>
       </View>
     );
   }
@@ -94,7 +102,7 @@ function BootstrappedLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="(onboarding)" />
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="scan" options={{ presentation: "modal" }} />
+        <Stack.Screen name="scan" />
         <Stack.Screen name="result/[readingId]" />
         <Stack.Screen name="history/[readingId]" />
         <Stack.Screen name="trends" />
@@ -106,6 +114,24 @@ function BootstrappedLayout() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Manrope_700Bold,
+    Manrope_800ExtraBold
+  });
+
+  if (!fontsLoaded) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator color={palette.primary} size="large" />
+        <Text style={styles.loadingText}>Loading the LawnPal studio...</Text>
+      </View>
+    );
+  }
+
   return (
     <AppProviders>
       <StatusBar style="dark" />
@@ -123,9 +149,9 @@ const styles = StyleSheet.create({
     gap: 16
   },
   loadingText: {
-    color: palette.ink,
-    fontSize: 16,
-    fontWeight: "600"
+    color: palette.primary,
+    fontFamily: fonts.bodySemi,
+    fontSize: 16
   },
   banner: {
     backgroundColor: palette.warningSoft,
@@ -133,8 +159,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12
   },
   bannerText: {
-    color: palette.ink,
-    fontSize: 13,
-    fontWeight: "600"
+    color: palette.primary,
+    fontFamily: fonts.bodySemi,
+    fontSize: 13
   }
 });

@@ -1,6 +1,6 @@
 # Lawn Pal
 
-Lawn Pal is a local-first mobile MVP that turns lawn sensor readings, weather, history and simple lawn context into clear weekly actions for homeowners.
+Lawn Pal is a local-first mobile MVP with a mobile-first stitched UI that turns lawn sensor readings, weather, schedule data and lawn context into clear actions for homeowners.
 
 This repo is a monorepo with:
 
@@ -38,11 +38,21 @@ The MVP intentionally avoids auth, cloud sync, payments and live BLE. It is soft
 
 `apps/mobile` contains:
 
-- Expo Router flows for onboarding, dashboard, scan, result, history, trends, products, AI Ask, schedule and settings
+- Expo Router flows for onboarding, dashboard, scan, result, trends, products, AI Ask, the merged Schedule hub and settings
 - `localRepository` on top of `expo-sqlite`
 - Zustand app bootstrap and lightweight onboarding draft state
 - weather service, notification sync and AI Ask service
 - photo notes on readings
+
+Current primary tabs in the mobile shell:
+
+- Lawn
+- Schedule
+- Scan
+- Ask
+- Settings
+
+The Schedule tab combines the weekly task planner and the saved scan archive into one management surface.
 
 Local tables stored on device:
 
@@ -99,7 +109,7 @@ OPENAI_MODEL=gpt-5.4-mini
 Copy `apps/mobile/.env.example` to `apps/mobile/.env` and set:
 
 ```bash
-EXPO_PUBLIC_API_BASE_URL=http://localhost:3000
+EXPO_PUBLIC_API_BASE_URL=http://localhost:3011
 EXPO_PUBLIC_USE_MOCK_SENSOR=true
 EXPO_PUBLIC_USE_MOCK_AI=false
 EXPO_PUBLIC_USE_MOCK_WEATHER=false
@@ -114,6 +124,8 @@ Start both apps:
 ```bash
 npm run dev
 ```
+
+In local development the API app runs on `http://localhost:3011`.
 
 Or run them separately:
 
@@ -207,7 +219,9 @@ Because the sensor provider is abstracted already, the rest of the app should no
 - Ask routes direct coaching questions such as mowing, feeding, seeding, watering and weekend-planning away from the diagnosis funnel.
 - Ask keeps a persistent case thread locally, so each issue can narrow over multiple turns instead of acting like one-shot Q&A.
 - The diagnosis authority is deterministic: the LLM is used for image observation, wording and question phrasing, not to invent the leading diagnosis.
-- The app renders a chat-first experience with one active follow-up question at a time, current likelihoods in the case summary, and fuller recovery advice only once the case is narrow enough.
+- Ask now lives as a dedicated bottom-nav tab.
+- The app renders a chat-first experience with one active follow-up question at a time, a top-level working diagnosis summary, and fuller recovery advice only once the case is narrow enough.
+- Recovery plans and product suggestions are only surfaced once the case is resolved with high confidence and a real product match exists.
 
 ## Ask diagnostic copilot
 
@@ -266,10 +280,11 @@ npm --workspace @lawnpal/core run test
 - Finish onboarding with `Connect sensor later`.
 - Run scans for each mock scenario.
 - Confirm dashboard status, weekly summary, next check date and tasks update after a scan.
-- Open history and view a saved reading detail.
+- Open Schedule and confirm weekly tasks render above the scan archive.
+- Open a saved reading detail from Schedule.
 - Attach a photo note to a reading.
 - Open trends and confirm charts render for multiple readings.
-- Open product recommendations after a scan with rule outputs.
+- Open product recommendations after a scan with rule outputs or after a settled Ask diagnosis.
 - Use AI Ask with text only.
 - Use AI Ask with text plus photo.
 - Toggle reminders on and off in settings.
@@ -282,8 +297,11 @@ npm --workspace @lawnpal/core run test
 Key files:
 
 - `apps/mobile/app/_layout.tsx`
+- `apps/mobile/src/components/appChrome.tsx`
 - `apps/mobile/src/data/localRepository.ts`
 - `apps/mobile/app/scan.tsx`
+- `apps/mobile/app/(tabs)/history.tsx`
+- `apps/mobile/app/(tabs)/ask.tsx`
 - `apps/api/src/app/api/weather/route.ts`
 - `apps/api/src/app/api/ai/route.ts`
 - `packages/core/src/engines/recommendationEngine.ts`

@@ -1,3 +1,4 @@
+import { LinearGradient } from "expo-linear-gradient";
 import type { PropsWithChildren, ReactNode } from "react";
 import {
   Pressable,
@@ -6,25 +7,33 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  View
+  View,
+  type ViewStyle
 } from "react-native";
-import { palette, spacing } from "../theme";
+import { fonts, layout, palette, radius, shadows, spacing } from "@/theme";
 
 export const Screen = ({
   children,
-  scroll = true
-}: PropsWithChildren<{ scroll?: boolean }>) => {
+  scroll = true,
+  contentContainerStyle
+}: PropsWithChildren<{ scroll?: boolean; contentContainerStyle?: ViewStyle }>) => {
   if (scroll) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>{children}</ScrollView>
+        <ScrollView
+          contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {children}
+        </ScrollView>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.fill}>{children}</View>
+      <View style={[styles.fill, contentContainerStyle]}>{children}</View>
     </SafeAreaView>
   );
 };
@@ -59,23 +68,35 @@ export const Button = ({
   <Pressable
     disabled={disabled}
     onPress={onPress}
-    style={({ pressed }) => [
-      styles.button,
-      tone === "primary" && styles.buttonPrimary,
-      tone === "secondary" && styles.buttonSecondary,
-      tone === "ghost" && styles.buttonGhost,
-      disabled && styles.buttonDisabled,
-      pressed && !disabled && styles.buttonPressed
-    ]}
+    style={({ pressed }) => [styles.buttonWrap, disabled && styles.buttonDisabled, pressed && !disabled && styles.buttonPressed]}
   >
-    <Text
-      style={[
-        styles.buttonText,
-        tone === "ghost" ? styles.buttonTextGhost : styles.buttonTextPrimary
-      ]}
-    >
-      {label}
-    </Text>
+    {tone === "primary" ? (
+      <LinearGradient
+        colors={[palette.primary, palette.primaryContainer]}
+        end={{ x: 1, y: 1 }}
+        start={{ x: 0, y: 0 }}
+        style={styles.buttonPrimary}
+      >
+        <Text style={[styles.buttonText, styles.buttonTextPrimary]}>{label}</Text>
+      </LinearGradient>
+    ) : (
+      <View
+        style={[
+          styles.button,
+          tone === "secondary" && styles.buttonSecondary,
+          tone === "ghost" && styles.buttonGhost
+        ]}
+      >
+        <Text
+          style={[
+            styles.buttonText,
+            tone === "ghost" ? styles.buttonTextGhost : styles.buttonTextSecondary
+          ]}
+        >
+          {label}
+        </Text>
+      </View>
+    )}
   </Pressable>
 );
 
@@ -125,12 +146,12 @@ export const InputField = ({
   multiline?: boolean;
 }) => (
   <TextInput
-    value={value}
+    multiline={multiline}
     onChangeText={onChangeText}
     placeholder={placeholder}
-    placeholderTextColor={palette.inkSoft}
-    multiline={multiline}
+    placeholderTextColor={palette.inkMuted}
     style={[styles.input, multiline && styles.inputMultiline]}
+    value={value}
   />
 );
 
@@ -141,62 +162,77 @@ const styles = StyleSheet.create({
   },
   fill: {
     flex: 1,
-    padding: spacing.lg
+    width: "100%",
+    maxWidth: layout.maxWidth,
+    alignSelf: "center",
+    paddingHorizontal: layout.gutter,
+    paddingTop: spacing.lg,
+    gap: spacing.lg
   },
   scrollContent: {
-    padding: spacing.lg,
-    gap: spacing.md
+    width: "100%",
+    maxWidth: layout.maxWidth,
+    alignSelf: "center",
+    paddingHorizontal: layout.gutter,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xxxl,
+    gap: spacing.lg
   },
   card: {
-    backgroundColor: palette.surface,
-    borderRadius: 24,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: palette.border,
-    shadowColor: palette.shadow,
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 1,
-    shadowRadius: 24,
-    elevation: 2,
+    backgroundColor: palette.surfaceLow,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
     gap: spacing.sm
   },
   heading: {
-    fontSize: 30,
-    lineHeight: 36,
-    color: palette.ink,
-    fontWeight: "700"
+    color: palette.primary,
+    fontFamily: fonts.headlineHeavy,
+    fontSize: 34,
+    letterSpacing: -0.8,
+    lineHeight: 40
   },
   subheading: {
-    fontSize: 18,
-    lineHeight: 24,
-    color: palette.ink,
-    fontWeight: "600"
+    color: palette.primary,
+    fontFamily: fonts.headlineBold,
+    fontSize: 20,
+    letterSpacing: -0.3,
+    lineHeight: 26
   },
   body: {
+    color: palette.ink,
+    fontFamily: fonts.body,
     fontSize: 15,
-    lineHeight: 22,
-    color: palette.ink
+    lineHeight: 22
   },
   bodyMuted: {
     color: palette.inkSoft
   },
+  buttonWrap: {
+    borderRadius: radius.lg,
+    overflow: "hidden",
+    ...shadows.botanical
+  },
   button: {
     minHeight: 52,
-    borderRadius: 18,
+    borderRadius: radius.lg,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: spacing.md
   },
   buttonPrimary: {
-    backgroundColor: palette.primary
+    minHeight: 54,
+    borderRadius: radius.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: spacing.lg
   },
   buttonSecondary: {
-    backgroundColor: palette.primarySoft
+    backgroundColor: palette.surfaceHigh
   },
   buttonGhost: {
     backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: palette.border
+    borderColor: "rgba(194, 200, 194, 0.35)"
   },
   buttonDisabled: {
     opacity: 0.5
@@ -205,24 +241,27 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.99 }]
   },
   buttonText: {
-    fontSize: 15,
-    fontWeight: "600"
+    fontFamily: fonts.bodyBold,
+    fontSize: 15
   },
   buttonTextPrimary: {
-    color: "#FFFFFF"
+    color: palette.white
+  },
+  buttonTextSecondary: {
+    color: palette.primary
   },
   buttonTextGhost: {
-    color: palette.ink
+    color: palette.primary
   },
   chip: {
     alignSelf: "flex-start",
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
     backgroundColor: palette.surfaceMuted
   },
   chipPositive: {
-    backgroundColor: palette.primarySoft
+    backgroundColor: palette.secondarySoft
   },
   chipWarning: {
     backgroundColor: palette.warningSoft
@@ -231,9 +270,11 @@ const styles = StyleSheet.create({
     backgroundColor: palette.dangerSoft
   },
   chipText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: palette.ink
+    color: palette.ink,
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    letterSpacing: 0.8,
+    textTransform: "uppercase"
   },
   row: {
     flexDirection: "row",
@@ -246,17 +287,18 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: palette.border
+    backgroundColor: "rgba(194, 200, 194, 0.22)"
   },
   input: {
     minHeight: 52,
-    borderRadius: 18,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: palette.border,
+    borderColor: "rgba(194, 200, 194, 0.28)",
     backgroundColor: palette.surface,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     color: palette.ink,
+    fontFamily: fonts.body,
     fontSize: 15
   },
   inputMultiline: {

@@ -39,10 +39,19 @@ const geocodeSchema = z.object({
   label: z.string()
 });
 
+const mockForecast = (location: StoredLocation): NormalizedWeather =>
+  buildMockWeather(location);
+
+const shouldFallbackToMock = (allowMockFallback?: boolean) =>
+  allowMockFallback ?? env.useMockSensor;
+
 export const weatherService = {
-  async fetchForecast(location: StoredLocation): Promise<NormalizedWeather> {
+  async fetchForecast(
+    location: StoredLocation,
+    options?: { allowMockFallback?: boolean }
+  ): Promise<NormalizedWeather> {
     if (env.useMockWeather) {
-      return buildMockWeather(location);
+      return mockForecast(location);
     }
 
     const query = new URLSearchParams({
@@ -54,6 +63,9 @@ export const weatherService = {
     try {
       response = await fetch(`${env.apiBaseUrl}/api/weather?${query.toString()}`);
     } catch {
+      if (shouldFallbackToMock(options?.allowMockFallback)) {
+        return mockForecast(location);
+      }
       throw new Error("Unable to reach the weather service.");
     }
 
@@ -61,10 +73,20 @@ export const weatherService = {
       const errorPayload = await response
         .json()
         .catch(() => null as { error?: string } | null);
+      if (shouldFallbackToMock(options?.allowMockFallback)) {
+        return mockForecast(location);
+      }
       throw new Error(errorPayload?.error ?? "Unable to fetch weather.");
     }
 
-    return weatherSchema.parse(await response.json());
+    try {
+      return weatherSchema.parse(await response.json());
+    } catch {
+      if (shouldFallbackToMock(options?.allowMockFallback)) {
+        return mockForecast(location);
+      }
+      throw new Error("Unable to fetch weather.");
+    }
   },
 
   async geocodePostcode(postcode: string): Promise<StoredLocation> {

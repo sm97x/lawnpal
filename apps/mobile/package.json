@@ -13,12 +13,16 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@expo-google-fonts/inter": "^0.4.1",
+    "@expo-google-fonts/manrope": "^0.4.1",
     "@expo/vector-icons": "^15.0.3",
     "@lawnpal/core": "1.0.0",
     "@tanstack/react-query": "^5.75.7",
     "expo": "~54.0.33",
+    "expo-font": "~14.0.9",
     "expo-file-system": "~19.0.21",
     "expo-image-picker": "~17.0.10",
+    "expo-linear-gradient": "~15.0.7",
     "expo-linking": "~8.0.11",
     "expo-location": "~19.0.8",
     "expo-notifications": "~0.32.16",

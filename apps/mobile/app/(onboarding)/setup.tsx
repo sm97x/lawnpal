@@ -1,46 +1,21 @@
 import type { GrassStyle, SoilType } from "@lawnpal/core";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import {
-  Body,
-  Button,
-  Card,
-  Heading,
-  InputField,
-  Screen,
-  Subheading
-} from "@/components/ui";
-import { palette, spacing } from "@/theme";
+import { StyleSheet, Text, View } from "react-native";
+import { ChoicePill, OnboardingScreen } from "@/components/onboarding";
+import { SectionEyebrow, SurfaceBlock } from "@/components/stitch";
+import { Button, InputField } from "@/components/ui";
 import { useAppStore } from "@/store/appStore";
+import { fonts, palette, spacing } from "@/theme";
 
 const grassStyles: GrassStyle[] = ["hard-wearing", "ornamental", "shaded", "unknown"];
 const soilTypes: SoilType[] = ["unknown", "sandy", "loam", "clay"];
 
-const Selector = ({
-  options,
-  value,
-  onChange
-}: {
-  options: string[];
-  value: string;
-  onChange: (value: string) => void;
-}) => (
-  <View style={styles.selectorWrap}>
-    {options.map((option) => {
-      const active = option === value;
-      return (
-        <Pressable
-          key={option}
-          onPress={() => onChange(option)}
-          style={[styles.selector, active && styles.selectorActive]}
-        >
-          <Text style={[styles.selectorText, active && styles.selectorTextActive]}>{option}</Text>
-        </Pressable>
-      );
-    })}
-  </View>
-);
+const titleCase = (value: string) =>
+  value
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 
 export default function SetupScreen() {
   const draft = useAppStore((state) => state.onboardingDraft);
@@ -59,57 +34,74 @@ export default function SetupScreen() {
   };
 
   return (
-    <Screen>
-      <Card>
-        <Heading>Set up your lawn</Heading>
-        <Body muted>
-          Keep this simple. Lawn Pal only needs enough context to make better weekly decisions.
-        </Body>
-      </Card>
+    <OnboardingScreen
+      description="A lightweight lawn profile helps the app frame scan results, diagnose edge cases, and tailor action plans."
+      eyebrow="Lawn Profile"
+      icon="grass"
+      step={3}
+      title="Add just enough context for better recommendations."
+    >
+      <SurfaceBlock tone="raised">
+        <SectionEyebrow>Lawn Name</SectionEyebrow>
+        <InputField onChangeText={setLawnName} placeholder="Home lawn" value={lawnName} />
+      </SurfaceBlock>
 
-      <Card>
-        <Subheading>Lawn name</Subheading>
-        <InputField value={lawnName} onChangeText={setLawnName} placeholder="Home lawn" />
-      </Card>
+      <SurfaceBlock tone="raised">
+        <SectionEyebrow>Grass Style</SectionEyebrow>
+        <View style={styles.choiceWrap}>
+          {grassStyles.map((option) => (
+            <ChoicePill
+              key={option}
+              active={option === grassStyle}
+              label={titleCase(option)}
+              onPress={() => setGrassStyle(option)}
+            />
+          ))}
+        </View>
+      </SurfaceBlock>
 
-      <Card>
-        <Subheading>Grass style</Subheading>
-        <Selector options={grassStyles} value={grassStyle} onChange={(value) => setGrassStyle(value as GrassStyle)} />
-      </Card>
+      <SurfaceBlock tone="raised">
+        <SectionEyebrow>Soil Type</SectionEyebrow>
+        <View style={styles.choiceWrap}>
+          {soilTypes.map((option) => (
+            <ChoicePill
+              key={option}
+              active={option === soilType}
+              label={titleCase(option)}
+              onPress={() => setSoilType(option)}
+            />
+          ))}
+        </View>
+      </SurfaceBlock>
 
-      <Card>
-        <Subheading>Soil type</Subheading>
-        <Selector options={soilTypes} value={soilType} onChange={(value) => setSoilType(value as SoilType)} />
-      </Card>
+      <SurfaceBlock tone="accent">
+        <SectionEyebrow tone="positive">Current Profile</SectionEyebrow>
+        <Text style={styles.profileTitle}>{lawnName.trim() || "Home lawn"}</Text>
+        <Text style={styles.profileBody}>
+          {`${titleCase(grassStyle)} grass with ${titleCase(soilType)} soil.`}
+        </Text>
+      </SurfaceBlock>
 
       <Button label="Continue to zones" onPress={handleContinue} />
-    </Screen>
+    </OnboardingScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  selectorWrap: {
+  choiceWrap: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.sm
   },
-  selector: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 10,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: palette.border,
-    backgroundColor: palette.surface
+  profileTitle: {
+    color: palette.white,
+    fontFamily: fonts.headlineBold,
+    fontSize: 22
   },
-  selectorActive: {
-    backgroundColor: palette.primary,
-    borderColor: palette.primary
-  },
-  selectorText: {
-    color: palette.ink,
-    fontWeight: "600"
-  },
-  selectorTextActive: {
-    color: "#FFFFFF"
+  profileBody: {
+    color: "rgba(255,255,255,0.82)",
+    fontFamily: fonts.body,
+    fontSize: 15,
+    lineHeight: 22
   }
 });

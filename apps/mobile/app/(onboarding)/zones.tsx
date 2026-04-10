@@ -2,18 +2,12 @@ import { makeId, type Lawn, type Zone, type ZoneExposure } from "@lawnpal/core";
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import {
-  Body,
-  Button,
-  Card,
-  Heading,
-  InputField,
-  Screen,
-  Subheading
-} from "@/components/ui";
+import { ChoicePill, OnboardingScreen } from "@/components/onboarding";
+import { SectionEyebrow, SurfaceBlock } from "@/components/stitch";
+import { Button, InputField } from "@/components/ui";
 import { localRepository } from "@/data/localRepository";
 import { useAppStore } from "@/store/appStore";
-import { palette, spacing } from "@/theme";
+import { fonts, palette, radius, spacing } from "@/theme";
 
 type DraftZone = {
   id: string;
@@ -29,6 +23,12 @@ const presets: { name: string; exposure: ZoneExposure }[] = [
 ];
 
 const exposureOptions: ZoneExposure[] = ["sunny", "part-shade", "shade", "mixed"];
+
+const titleCase = (value: string) =>
+  value
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 
 export default function ZonesScreen() {
   const draft = useAppStore((state) => state.onboardingDraft);
@@ -112,138 +112,138 @@ export default function ZonesScreen() {
   };
 
   return (
-    <Screen>
-      <Card>
-        <Heading>Set up zones</Heading>
-        <Body muted>
-          Zones help Lawn Pal spot patterns like a damp back lawn or a shaded patch that needs a
-          different plan.
-        </Body>
-      </Card>
-
-      <Card>
-        <Subheading>Suggested zones</Subheading>
-        <View style={styles.presetWrap}>
+    <OnboardingScreen
+      description="Zones let LawnPal separate a damp shaded area from a hotter sunny strip, so the dashboard and scan results can be more specific."
+      eyebrow="Zone Mapping"
+      icon="grid-view"
+      step={4}
+      title="Map the zones you want the app to reason about."
+    >
+      <SurfaceBlock tone="accent">
+        <SectionEyebrow tone="positive">Suggested Zones</SectionEyebrow>
+        <View style={styles.choiceWrap}>
           {missingPresets.map((preset) => (
-            <Pressable
+            <ChoicePill
               key={preset.name}
+              icon="add"
+              label={preset.name}
               onPress={() => addPreset(preset.name, preset.exposure)}
-              style={styles.presetButton}
-            >
-              <Text style={styles.presetText}>+ {preset.name}</Text>
-            </Pressable>
+            />
           ))}
         </View>
-      </Card>
+      </SurfaceBlock>
 
-      <Card>
-        <Subheading>Add a custom zone</Subheading>
+      <SurfaceBlock tone="raised">
+        <SectionEyebrow>Add A Custom Zone</SectionEyebrow>
         <InputField
-          value={customName}
           onChangeText={setCustomName}
-          placeholder="Side patch, dog run, shady strip…"
+          placeholder="Side patch, dog run, shady strip..."
+          value={customName}
         />
-        <View style={styles.presetWrap}>
-          {exposureOptions.map((option) => {
-            const active = option === customExposure;
-            return (
-              <Pressable
-                key={option}
-                onPress={() => setCustomExposure(option)}
-                style={[styles.exposureButton, active && styles.exposureButtonActive]}
-              >
-                <Text style={[styles.exposureText, active && styles.exposureTextActive]}>
-                  {option}
-                </Text>
-              </Pressable>
-            );
-          })}
+        <View style={styles.choiceWrap}>
+          {exposureOptions.map((option) => (
+            <ChoicePill
+              key={option}
+              active={option === customExposure}
+              label={titleCase(option)}
+              onPress={() => setCustomExposure(option)}
+            />
+          ))}
         </View>
-        <Button label="Add zone" tone="secondary" onPress={addCustom} />
-      </Card>
+        <Button label="Add zone" onPress={addCustom} tone="secondary" />
+      </SurfaceBlock>
 
-      <Card>
-        <Subheading>Your zones</Subheading>
-        {zones.map((zone) => (
-          <View key={zone.id} style={styles.zoneRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.zoneName}>{zone.name}</Text>
-              <Text style={styles.zoneMeta}>{zone.exposure}</Text>
-            </View>
-            <Pressable onPress={() => removeZone(zone.id)}>
-              <Text style={styles.removeText}>Remove</Text>
-            </Pressable>
+      <SurfaceBlock tone="raised">
+        <View style={styles.zoneHeader}>
+          <View>
+            <SectionEyebrow>Your Zones</SectionEyebrow>
+            <Text style={styles.zoneTitle}>{`${zones.length} zones ready`}</Text>
           </View>
-        ))}
-      </Card>
+        </View>
+        <View style={styles.zoneList}>
+          {zones.map((zone) => (
+            <View key={zone.id} style={styles.zoneRow}>
+              <View style={styles.zoneCopy}>
+                <Text style={styles.zoneName}>{zone.name}</Text>
+                <Text style={styles.zoneMeta}>{titleCase(zone.exposure)}</Text>
+              </View>
+              <Pressable onPress={() => removeZone(zone.id)} style={styles.removeButton}>
+                <Text style={styles.removeText}>Remove</Text>
+              </Pressable>
+            </View>
+          ))}
+        </View>
+      </SurfaceBlock>
 
       <Button
+        disabled={!canSave}
         label="Try demo mode"
         onPress={() => void finishOnboarding(true)}
-        disabled={!canSave}
       />
       <Button
-        label="Connect sensor later"
-        tone="ghost"
-        onPress={() => void finishOnboarding(false)}
         disabled={!canSave}
+        label="Connect sensor later"
+        onPress={() => void finishOnboarding(false)}
+        tone="ghost"
       />
-    </Screen>
+    </OnboardingScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  presetWrap: {
+  choiceWrap: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.sm
   },
-  presetButton: {
-    borderRadius: 999,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: palette.border
+  zoneHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: spacing.md
   },
-  presetText: {
-    color: palette.ink,
-    fontWeight: "600"
+  zoneTitle: {
+    color: palette.primary,
+    fontFamily: fonts.headlineBold,
+    fontSize: 22
   },
-  exposureButton: {
-    borderRadius: 999,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: palette.border
-  },
-  exposureButtonActive: {
-    backgroundColor: palette.primary,
-    borderColor: palette.primary
-  },
-  exposureText: {
-    color: palette.ink,
-    fontWeight: "600"
-  },
-  exposureTextActive: {
-    color: "#FFFFFF"
+  zoneList: {
+    gap: spacing.sm
   },
   zoneRow: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: spacing.md,
-    paddingVertical: spacing.xs
+    borderRadius: radius.xl,
+    backgroundColor: palette.surface,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md
+  },
+  zoneCopy: {
+    flex: 1,
+    gap: 2
   },
   zoneName: {
-    color: palette.ink,
-    fontWeight: "600",
-    fontSize: 16
+    color: palette.primary,
+    fontFamily: fonts.headlineBold,
+    fontSize: 18
   },
   zoneMeta: {
     color: palette.inkSoft,
-    marginTop: 2
+    fontFamily: fonts.body,
+    fontSize: 13
+  },
+  removeButton: {
+    borderRadius: radius.pill,
+    backgroundColor: palette.dangerSoft,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm
   },
   removeText: {
     color: palette.danger,
-    fontWeight: "600"
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    textTransform: "uppercase"
   }
 });

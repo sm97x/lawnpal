@@ -1,12 +1,15 @@
 import type { RecommendationSet, SensorReading, Zone } from "@lawnpal/core";
 import * as ImagePicker from "expo-image-picker";
-import { useLocalSearchParams, useFocusEffect } from "expo-router";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
-import { Image, StyleSheet, View } from "react-native";
-import { Body, Button, Card, Heading, InputField, Screen, Subheading } from "@/components/ui";
+import { Image, StyleSheet, Text, View } from "react-native";
+import { AppScreen } from "@/components/appChrome";
+import { SectionEyebrow, SurfaceBlock } from "@/components/stitch";
+import { Button, InputField } from "@/components/ui";
 import { localRepository } from "@/data/localRepository";
 import { formatDateTime } from "@/lib/format";
 import { useAppStore } from "@/store/appStore";
+import { fonts, palette, spacing } from "@/theme";
 
 export default function HistoryDetailScreen() {
   const { readingId } = useLocalSearchParams<{ readingId: string }>();
@@ -33,12 +36,8 @@ export default function HistoryDetailScreen() {
     }, [load])
   );
 
-  const addPhoto = async (mode: "camera" | "library") => {
-    const result =
-      mode === "camera"
-        ? await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.6 })
-        : await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, quality: 0.6 });
-
+  const addPhoto = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, quality: 0.6 });
     if (result.canceled || !result.assets[0]) {
       return;
     }
@@ -56,55 +55,73 @@ export default function HistoryDetailScreen() {
 
   if (!reading) {
     return (
-      <Screen>
-        <Card>
-          <Heading>Reading not found</Heading>
-        </Card>
-      </Screen>
+      <AppScreen navKey="history">
+        <SurfaceBlock>
+          <Text style={styles.title}>Reading not found</Text>
+        </SurfaceBlock>
+      </AppScreen>
     );
   }
 
   return (
-    <Screen>
-      <Card>
-        <Heading>{zone?.name ?? "Reading detail"}</Heading>
-        <Body muted>{formatDateTime(reading.takenAt)}</Body>
-        <Body>{summary?.mainIssue ?? "Saved reading"}</Body>
-      </Card>
+    <AppScreen navKey="history">
+      <SurfaceBlock>
+        <SectionEyebrow>{zone?.name ?? "Reading detail"}</SectionEyebrow>
+        <Text style={styles.title}>{summary?.mainIssue ?? "Saved reading"}</Text>
+        <Text style={styles.subtitle}>{formatDateTime(reading.takenAt)}</Text>
+      </SurfaceBlock>
 
-      <Card>
-        <Subheading>Photo note</Subheading>
+      <SurfaceBlock tone="raised">
+        <SectionEyebrow>Photo Note</SectionEyebrow>
         {reading.photoUri ? <Image source={{ uri: reading.photoUri }} style={styles.image} /> : null}
-        <View style={styles.actions}>
-          <Button label="Take photo" tone="secondary" onPress={() => void addPhoto("camera")} />
-          <Button label="Choose photo" tone="ghost" onPress={() => void addPhoto("library")} />
-        </View>
+        <Button label="Choose photo" onPress={() => void addPhoto()} tone="secondary" />
         <InputField
-          value={note}
-          onChangeText={setNote}
-          placeholder="Add a quick note about colour, softness, weeds or patchiness…"
           multiline
+          onChangeText={setNote}
+          placeholder="Add a quick note about color, softness, weeds, or patchiness..."
+          value={note}
         />
         <Button label="Save note" onPress={() => void saveNote()} />
-      </Card>
+      </SurfaceBlock>
 
-      <Card>
-        <Subheading>Recommendations at the time</Subheading>
-        {summary?.recommendations.map((recommendation) => (
-          <Body key={recommendation.id}>• {recommendation.title}</Body>
-        ))}
-      </Card>
-    </Screen>
+      {summary ? (
+        <SurfaceBlock tone="raised">
+          <SectionEyebrow>Recommendations at the time</SectionEyebrow>
+          <View style={styles.list}>
+            {summary.recommendations.map((recommendation) => (
+              <Text key={recommendation.id} style={styles.item}>
+                {recommendation.title}
+              </Text>
+            ))}
+          </View>
+        </SurfaceBlock>
+      ) : null}
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
+  title: {
+    color: palette.primary,
+    fontFamily: fonts.headlineBold,
+    fontSize: 26
+  },
+  subtitle: {
+    color: palette.inkSoft,
+    fontFamily: fonts.body,
+    fontSize: 14
+  },
   image: {
     width: "100%",
     height: 220,
-    borderRadius: 20
+    borderRadius: 24
   },
-  actions: {
-    gap: 10
+  list: {
+    gap: spacing.sm
+  },
+  item: {
+    color: palette.primary,
+    fontFamily: fonts.bodySemi,
+    fontSize: 14
   }
 });
