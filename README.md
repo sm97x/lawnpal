@@ -4,7 +4,7 @@ Lawn Pal is a local-first mobile MVP with a mobile-first stitched UI that turns 
 
 This repo is a monorepo with:
 
-- `apps/mobile`: Expo React Native app with Expo Router, Zustand, TanStack Query, SQLite persistence, photo notes, notifications and demo sensor mode.
+- `apps/mobile`: Expo React Native app with Expo Router, Zustand, TanStack Query, SQLite persistence, photo notes, notifications, mock sensor mode and native BLE sensor support.
 - `apps/api`: Next.js API app that proxies OpenWeather requests and OpenAI Responses API calls.
 - `packages/core`: Shared domain types, rule engine, schedule engine, mock sensor provider, weather normalisation, product engine and tests.
 
@@ -17,7 +17,7 @@ The app is designed to answer four questions quickly:
 - What should I not do?
 - When should I check again?
 
-The MVP intentionally avoids auth, cloud sync, payments and live BLE. It is software-first and fully usable with mock sensor data.
+The MVP intentionally avoids auth, cloud sync and payments. It stays fully usable with mock sensor data, and native BLE hardware reads are now available in development or production builds.
 
 ## Architecture
 
@@ -25,7 +25,7 @@ The MVP intentionally avoids auth, cloud sync, payments and live BLE. It is soft
 
 `packages/core` contains the stable domain layer:
 
-- `SensorProvider`, `MockSensorProvider`, `BleSensorProvider`
+- `SensorProvider`, `MockSensorProvider`, BLE protocol decoding/parsing helpers
 - `WeatherProvider` interface and OpenWeather normalisation helpers
 - `generateRecommendations` deterministic rule engine
 - `generateSchedule` rolling task planner
@@ -86,7 +86,8 @@ The API app keeps weather and OpenAI keys off the device and returns normalised 
 
 - Node.js 24+
 - npm 11+
-- Expo Go or a simulator/device for the mobile app
+- Expo CLI plus a simulator/device for the mobile app
+- For live BLE reads, a native iOS or Android development build (Expo Go will not work)
 
 ### 1. Install dependencies
 
@@ -156,7 +157,7 @@ Available mock scenarios:
 - feed caution
 - random realistic
 
-The mock provider returns the same reading shape that the future BLE provider will use:
+The mock provider returns the same reading shape that the native BLE provider uses:
 
 - moisture
 - soil temperature
@@ -164,6 +165,48 @@ The mock provider returns the same reading shape that the future BLE provider wi
 - pH
 - light
 - humidity
+
+## BLE sensor mode
+
+Live BLE reads are enabled when:
+
+```bash
+EXPO_PUBLIC_USE_MOCK_SENSOR=false
+```
+
+Important constraints:
+
+- Expo Go will not work for BLE because `react-native-ble-plx` requires custom native code.
+- Use a native development build or production build instead.
+- The mobile app selects the native BLE provider in `apps/mobile/src/services/sensorService.ts`.
+- The shared packet decode and parsing logic lives in `packages/core/src/sensors/bleProtocol.ts`.
+
+Recommended run flow for live hardware:
+
+```bash
+npm install
+npm --workspace @lawnpal/mobile run android
+npm --workspace @lawnpal/mobile run ios
+```
+
+The first native run will trigger Expo prebuild/native project sync with the BLE config plugin from `apps/mobile/app.json`.
+
+BLE debug output is logged in development builds with the prefix:
+
+```text
+[LawnPal BLE]
+```
+
+Expected logs include:
+
+- matched scan devices and RSSI
+- connect/disconnect events
+- raw encoded packet bytes
+- decoded packet bytes
+- parsed raw fields
+- parsed flags
+- checksum status
+- final LawnPal metrics
 
 ## Mock weather and AI toggles
 
@@ -191,18 +234,12 @@ The mobile app will bypass the API AI route and return a deterministic mock answ
 
 If `OPENAI_API_KEY` is missing, `apps/api/src/app/api/ai/route.ts` returns a safe mocked answer instead of failing hard.
 
-## BLE integration later
+## BLE implementation notes
 
-BLE is intentionally stubbed today in `packages/core/src/sensors/bleSensorProvider.ts`.
-
-To integrate the real supplier protocol later:
-
-1. Replace the internals of `BleSensorProvider.scanDevices`, `connect`, `disconnect` and `takeReading`.
-2. Keep the returned `SensorReading` shape unchanged.
-3. Flip `EXPO_PUBLIC_USE_MOCK_SENSOR=false`.
-4. Leave the dashboard, scan flow, rules, schedule generation and persistence untouched.
-
-Because the sensor provider is abstracted already, the rest of the app should not need a structural refactor.
+- `apps/mobile/src/services/bleSensorProvider.native.ts` owns scanning, permissions, connection management, characteristic reads and development logging.
+- `apps/mobile/src/services/bleSensorProvider.ts` is a non-native fallback that throws a clear error on unsupported platforms such as web.
+- `packages/core/src/sensors/bleProtocol.ts` owns the vendor decode algorithm, XOR checksum helpers, flag parsing and packet-to-`SensorMetrics` translation.
+- Moisture, humidity and soil temperature scaling are intentionally isolated in named parser helpers so real-device calibration can adjust them without touching the BLE transport.
 
 ## Weather implementation notes
 
@@ -250,12 +287,13 @@ Recommended deployment steps:
 
 ### Mobile app
 
-For local MVP testing, run with Expo Go or a simulator. For later distribution, add your preferred EAS build profile on top of the current app.
+For local MVP testing, Expo Go is still fine in mock mode. For live BLE testing, use a native development build or your preferred EAS/native distribution flow.
 
 ## Testing
 
 The shared core package includes unit tests for:
 
+- BLE protocol decoding and packet parsing
 - recommendation engine
 - schedule engine
 - mock sensor scenarios

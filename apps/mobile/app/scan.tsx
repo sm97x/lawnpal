@@ -58,14 +58,19 @@ export default function ScanScreen() {
         throw new Error("No sensor found.");
       }
 
-      setProgressText("Connecting to sensor...");
-      await provider.connect(device.id);
-      setProgressText("Analyzing moisture...");
-      const reading = await provider.takeReading({
-        zoneId: activeZone.id,
-        scenarioKey: scenario
-      });
-      await provider.disconnect();
+      let reading;
+      try {
+        setProgressText("Connecting to sensor...");
+        await provider.connect(device.id);
+        setProgressText("Analyzing moisture...");
+        reading = await provider.takeReading({
+          zoneId: activeZone.id,
+          scenarioKey: scenario
+        });
+      } finally {
+        await provider.disconnect().catch(() => undefined);
+      }
+
       await localRepository.saveReading(reading);
 
       setProgressText("Fetching local weather...");
@@ -100,7 +105,8 @@ export default function ScanScreen() {
       bumpVersion();
       router.replace(`/result/${reading.id}`);
     } catch (error) {
-      setProgressText(error instanceof Error ? error.message : "Unable to complete this scan.");
+      const fallbackMessage = "Unable to complete this scan.";
+      setProgressText(error instanceof Error ? error.message : fallbackMessage);
     } finally {
       setLoading(false);
     }

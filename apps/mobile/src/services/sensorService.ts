@@ -1,5 +1,6 @@
-import { BleSensorProvider, MockSensorProvider, type SensorProvider } from "@lawnpal/core";
+import { MockSensorProvider, type SensorProvider } from "@lawnpal/core";
 import { env } from "../env";
+import { BleSensorProvider } from "./bleSensorProvider";
 
 let provider: SensorProvider | null = null;
 

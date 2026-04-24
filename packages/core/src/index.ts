@@ -5,6 +5,7 @@ export * from "./sensors/provider";
 export * from "./sensors/scenarios";
 export * from "./sensors/mockSensorProvider";
 export * from "./sensors/bleSensorProvider";
+export * from "./sensors/bleProtocol";
 export * from "./weather/provider";
 export * from "./weather/mockWeather";
 export * from "./weather/openWeather";
